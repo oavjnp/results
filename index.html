@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Student Results">
+  <meta name="theme-color" content="#0969da">
+  <link rel="manifest" href="manifest.json">
+  <title>Student Results</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f8fa; color: #1f2328;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff; border: 1px solid #d0d7de; border-radius: 10px;
+      padding: 32px; width: 100%; max-width: 340px;
+    }
+    h1 { font-size: 1.2rem; margin-bottom: 4px; text-align: center; }
+    .sub { color: #57606a; font-size: .88rem; margin-bottom: 24px; text-align: center; }
+    label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; }
+    input[type=text], input[type=date] {
+      width: 100%; padding: 9px 12px; border: 1px solid #d0d7de; border-radius: 6px;
+      font-size: 1rem; background: #fff; outline: none;
+    }
+    input:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.15); }
+    .field { margin-bottom: 16px; }
+    button {
+      width: 100%; padding: 10px; border: none; border-radius: 6px;
+      background: #0969da; color: #fff; font-size: 1rem; font-weight: 600;
+      cursor: pointer; margin-top: 4px;
+    }
+    button:disabled { background: #8ab4f8; cursor: not-allowed; }
+    button.offline { background: #cf222e; }
+    .status { text-align: center; color: #57606a; font-size: .82rem; margin-top: 12px; min-height: 18px; }
+    .error {
+      margin-bottom: 16px; padding: 10px 14px; border-radius: 6px;
+      background: #fff0f0; border: 1px solid #ffc7ce; color: #cf222e; font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎓 Student Results</h1>
+    <p class="sub">Odisha Adarsha Vidyalaya</p>
+
+    <div id="errorBanner" class="error" style="display:none;"></div>
+
+    <form id="loginForm" method="POST" autocomplete="on">
+      <div class="field">
+        <label for="admission_no">Admission Number</label>
+        <input type="text" id="admission_no" name="admission_no" placeholder="e.g. 046/583" required>
+      </div>
+      <div class="field">
+        <label for="birth_date">Date of Birth</label>
+        <input type="date" id="birth_date" name="birth_date" required>
+      </div>
+      <button type="submit" id="submitBtn" disabled>Connecting…</button>
+      <p class="status" id="statusLine">Connecting to school server…</p>
+    </form>
+  </div>
+
+  <script>
+  (function () {
+    var form = document.getElementById('loginForm');
+    var btn  = document.getElementById('submitBtn');
+    var stat = document.getElementById('statusLine');
+
+    var params = new URLSearchParams(location.search);
+    var err = params.get('error');
+    if (err) {
+      var b = document.getElementById('errorBanner');
+      b.textContent = decodeURIComponent(err.replace(/\+/g, ' '));
+      b.style.display = '';
+    }
+
+    function fetchTunnelUrl() {
+      return fetch('https://raw.githubusercontent.com/oavjnp/results/main/url.txt?t=' + Date.now(),
+        { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
+        .then(function (url) {
+          url = url.trim();
+          if (!url || url.charAt(0) === '#') throw new Error('offline');
+          return url;
+        });
+    }
+
+    fetchTunnelUrl().then(function (url) {
+      form.action = url + '/student/login';
+      btn.disabled = false;
+      btn.textContent = 'View my results →';
+      stat.textContent = '';
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = 'Retry';
+      btn.classList.add('offline');
+      btn.type = 'button';
+      btn.onclick = function () { location.reload(); };
+      stat.textContent = 'Server offline — try again shortly.';
+    });
+  })();
+  </script>
+</body>
+</html>
