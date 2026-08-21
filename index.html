@@ -65,6 +65,7 @@
     </form>
   </div>
 
+  <script src="tunnel.js"></script>
   <script>
   (function () {
     var form = document.getElementById('loginForm');
@@ -79,29 +80,30 @@
       b.style.display = '';
     }
 
-    function fetchTunnelUrl() {
-      return fetch('https://raw.githubusercontent.com/oavjnp/results/main/url.txt?t=' + Date.now(),
-        { cache: 'no-store' })
-        .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
-        .then(function (url) {
-          url = url.trim();
-          if (!url || url.charAt(0) === '#') throw new Error('offline');
-          return url;
-        });
-    }
-
-    fetchTunnelUrl().then(function (url) {
+    function applyUrl(url) {
       form.action = url + '/student/login';
       btn.disabled = false;
       btn.textContent = 'View my results →';
+      btn.classList.remove('offline');
       stat.textContent = '';
+    }
+
+    resolveTunnel({
+      onWaiting: function () { stat.textContent = 'Server is restarting — reconnecting…'; }
+    }).then(function (url) {
+      applyUrl(url);
+      setInterval(function () {
+        resolveTunnel().then(function (fresh) {
+          if (form.action.indexOf(fresh) !== 0) applyUrl(fresh);
+        }).catch(function () {});
+      }, 120000);
     }).catch(function () {
       btn.disabled = false;
       btn.textContent = 'Retry';
       btn.classList.add('offline');
       btn.type = 'button';
       btn.onclick = function () { location.reload(); };
-      stat.textContent = 'Server offline — try again shortly.';
+      stat.textContent = 'Server not reachable — try again shortly.';
     });
   })();
   </script>
